@@ -1,8 +1,3 @@
-# The script of the game goes in this file.
-
-# Declare characters used by this game. The color argument colorizes the
-# name of the character.
-
 define e = Character("Eileen")
 
 
@@ -44,12 +39,14 @@ init -2 python:
             self.windowLength=windowLength
             
     class player:
-        def __init__(self, health, max):
+        def __init__(self, health, max, timeStart1, timeTry1):
             
             self.currentHealth=health
             self.maxHealth=max
+            self.exhaust=timeStart1
+            self.recover=timeTry1
             
-    player1= player(10,10)
+    player1= player(10,10, 0, 0)
     enemy1= enemy(13,13,.6,'idleHollow', 10,10, "N", 0,\
               0,0,False,0,False, 1500)
     hamster_coordinate=Coordinate(0.5,0.5,0.05,0.05,0.95,0.95, 1.0)
@@ -86,20 +83,28 @@ screen hamster_cage:
     #hamster_coordinate.xoffset to a negative number
     #SetField do exactly that job
     
-   
+    
         
   
     key "focus_left" action SetField(enemy1,"distance",0)
     key "focus_right" action SetField(enemy1,"distance",.2)
-    key "focus_up" action SetField(enemy1,"currentHealth",enemy1.currentHealth-1)
     
-    if enemy1.sprite=="idleHollow":
+    if renpy.get_game_runtime()-player1.exhaust >=5:
+        key "focus_up" action [SetField(enemy1,"currentHealth",enemy1.currentHealth-1), SetField(player1,"exhaust",renpy.get_game_runtime())]
+    else:
+        key "focus_up" action [SetField(enemy1,"currentHealth",enemy1.currentHealth+1), SetField(player1,"exhaust",renpy.get_game_runtime())]
+    
+    if enemy1.sprite=="idleHollow" and renpy.get_game_runtime()-player1.exhaust >=5:
     
         key "focus_down" action [SetField(player1,"currentHealth",player1.currentHealth-4),SetField(enemy1,"distance",0.6), SetField(enemy1,"sprite", "idleHollow"),\
             Return("start")]
-    elif enemy1.sprite=="tiredHollow":
+    
+    elif enemy1.sprite=="tiredHollow" and renpy.get_game_runtime()-player1.exhaust >=5:
         key "focus_down" action [SetField(player1,"currentHealth",player1.currentHealth+1),SetField(enemy1,"distance",0.6), SetField(enemy1,"sprite", "idleHollow"),\
             Return("start")]
+        
+    elif enemy1.sprite=="tiredHollow" and renpy.get_game_runtime()-player1.exhaust <5:
+        key "focus_down" action [SetField(enemy1,"currentHealth",enemy1.currentHealth+1), SetField(player1,"exhaust",renpy.get_game_runtime())]
     
     #key "focus_down" action SetField(hamster_coordinate,"yoffset",+0.005)
    # if enemy1.distance == 0: #player adjacent to enemy
@@ -122,10 +127,11 @@ screen hamster_cage:
     
     key "s" action SetField(player1, "currentHealth", player1.currentHealth-1)
     
-
-    key "dismiss" action Return("hamster")
+    
+   # key "dismiss" action Return("noEscape")
     
     key "a" action SetField(enemy1,"distance",2)
+    
     
     if enemy1.currentHealth <=0:
         timer 0.1 action Return("victory")
@@ -166,11 +172,15 @@ label start:
     "RAH!  RAH!  RAH!"
  
     
-    
 label rest:
     python:
         jumpOff=renpy.call_screen("timing2")
         renpy.jump(jumpOff)
+        
+label noEscape:
+    python:
+        renpy.say(e, "Haha...no you're not getting out of this that easily.")
+        renpy.jump("noEscape")
         
 label victory:
     "Ya did it buddy."
@@ -178,4 +188,4 @@ label victory:
         
 label gameOver:
     "Ya dun goofed."
-    return
+return
